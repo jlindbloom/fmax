@@ -1,0 +1,1 @@
+from fmax.models.models import ForecastModel
