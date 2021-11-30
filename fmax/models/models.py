@@ -1,6 +1,8 @@
 import numpy as np
 import pymc3 as pm
 
+import fmax as fm
+
 
 class ForecastModel:
     """Model class for handling forecasting given observed sequence of attempts.
@@ -29,6 +31,7 @@ class ForecastModel:
             self.train_index = self.master_index
             self.test_data = None
             self.test_index = None
+            self.fcast_index = [i for i in range(len(self.train_data), len(self.train_data) + self.fcast_len)]
         else:
             idx_train_max = int(train*len(self.master_index))
             self.train_data = self.record_data[:idx_train_max]
@@ -42,7 +45,7 @@ class ForecastModel:
 
 
     def fit(self, attempts_mean_mu=11, attempts_mean_sigma=3,
-                            attempts_stdev_lam=1):
+                            attempts_stdev_lam=1, chains=2, draws=20000, tune=5000):
         """Fits a PyMC model to the training data.
         """
 
@@ -54,23 +57,40 @@ class ForecastModel:
 
         if self.attempts == "gaussian":
             
-            random_sampler = fm.gaussian_random(n_periods=self.tot_index_len, past_obs=self.train_data)
+            random_sampler = fm.gaussian_random(n_periods=self.fcast_len, past_obs=self.train_data)
 
             with self.pymc_model:
                 loglike = fm.gaussian_attempts
                 #global fm.gaussian_random
                 likelihood = pm.DensityDist('running_max', loglike, random=random_sampler, 
-                                observed = {'jump_data':jump_data, 
-                                            'flat_data':flat_data, 
+                                observed = {'jump_data':self.jump_data, 
+                                            'flat_data':self.flat_data, 
                                             'mu': mu, 
                                             'sigma': sigma})
+        
+        elif self.attempts == "gumbel":
+            
+
+            if self.kind == "min":
+
+                random_sampler = fm.gumbel_random_min(n_periods=self.fcast_len, past_obs=self.train_data)
+                
+                with self.pymc_model:
+                    loglike = fm.gumbel_attempts_min
+                    #global fm.gaussian_random
+                    likelihood = pm.DensityDist('running_max', loglike, random=random_sampler, 
+                                    observed = {'jump_data':self.jump_data, 
+                                                'flat_data':self.flat_data, 
+                                                'mu': mu, 
+                                                'sigma': sigma})
+        
         else:
             
             raise NotImplementedError
 
         with self.pymc_model:
             
-            self.trace = pm.sample(draws=20000, chains=2, tune=5000, cores=1, target_accept=0.99,
+            self.trace = pm.sample(draws=draws, chains=chains, tune=tune, cores=1, target_accept=0.99,
                     return_inferencedata=True, 
                     idata_kwargs={"density_dist_obs": False})            
 

@@ -1,4 +1,5 @@
 import pymc3 as pm
+import numpy as np
 
 def gaussian_attempts(jump_data, flat_data, mu, sigma):
     """Log likelihood with a Gaussian attempt distribution.
@@ -21,6 +22,22 @@ def gaussian_attempts(jump_data, flat_data, mu, sigma):
     return log_likelihood
 
 
+def gumbel_attempts_min(jump_data, flat_data, mu, sigma):
+    """Log likelihood with a Gumbel attempt distribution.
+    """
+
+    beta = pm.math.sqrt((6/(np.pi**2))*(sigma**2))
+    mu = (-mu) - beta*np.euler_gamma
+
+    x_dist = pm.Gumbel.dist(mu=mu, beta=beta)
+    
+    # Add likelihood contribution from the jump data
+    log_likelihood = pm.math.sum(x_dist.logp(-jump_data))
+
+    # Contribution from the flat data
+    log_likelihood += pm.math.log1mexp(x_dist.logcdf(-flat_data))
+
+    return log_likelihood
 
 
 

@@ -1,1 +1,1 @@
-from fmax.loglike.loglike import gaussian_attempts
+from fmax.loglike.loglike import gaussian_attempts, gumbel_attempts_min
