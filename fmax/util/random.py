@@ -33,13 +33,13 @@ def get_random_fn(
       else: raise NotImplementedError
 
       if past_obs is not None:
-          last_obs = np.atleast_1d(past_obs[-1])
-          attempts = np.concatenate([last_obs, attempts])
-          sample_path = np.minimum.accumulate(attempts)[1:]
-          full_sample_path = np.concatenate([past_obs, sample_path])
-          return full_sample_path
-      else:
-          sample_path = np.minimum.accumulate(attempts)
-          return sample_path
-    
+          attempts = np.concatenate([past_obs, attempts])
+      
+      if kind == 'max':
+        sample_path = np.minimum.accumulate(attempts)
+      elif kind == 'min'
+        sample_path = np.minimum.accumulate(attempts)
+        
+      return sample_path
+      
     return _random

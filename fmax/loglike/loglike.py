@@ -28,10 +28,15 @@ def get_loglikelihood_fn(
         log_likelihood = pm.math.sum(x_dist.logp(jump_data))
 
         # Add likelihood contribution from the flat data
-        log_likelihood += pm.math.sum(
-                          pm.math.log1mexp(
-                          -x_dist.logcdf(flat_data)
-                          ))
+        if kind == 'max':
+          log_likelihood += pm.math.sum(x_dist.logcdf(flat_data))
+                            
+        if kind == 'min':
+          log_likelihood += pm.math.sum(
+                            pm.math.log1mexp(
+                            -x_dist.logcdf(flat_data)
+                            ))
+        else: raise ValueError("`kind` must be 'max' or 'min'")
         
         return log_likelihood
     
