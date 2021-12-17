@@ -23,13 +23,14 @@ class ForecastModel:
         },
         
         kind="max", 
-        attempts="gaussian", 
+        attempt_distribution="gaussian", 
         train="all"
         ):
         self.record_data = record_data
         self.kind = kind
-        self.attempts = attempts
+        self.attempt_distribution = attempt_distribution
         self.n_obs = len(record_data)
+        self.fcast_len = fcast_len
         self.train = train
 
         # Handle time index
@@ -56,8 +57,11 @@ class ForecastModel:
         # Get jump/flat data
         self.jump_data, self.flat_data =\
           fm.jump_flat_split(self.train_data, kind=self.kind)
-          
         
+        # Init PyMC3 model
+        self.init_pymc_model()
+    
+    def init_pymc_model(self):
         # Define model
         with pm.Model() as self.pymc_model:
             # Initialize priors
@@ -65,27 +69,38 @@ class ForecastModel:
             attempts_mean_sigma = prior_parameters['mu']['std']
             attempts_stdev_lam = prior_parameters['sigma']['lam']
             
-            mu = pm.Normal('mu', mu=attempts_mean_mu, sigma=attempts_mean_sigma)
-            sigma = pm.Exponential('sigma', lam=attempts_stdev_lam)
+            priors = {
+              'mu' : pm.Normal('mu', mu=attempts_mean_mu, sigma=attempts_mean_sigma)
+              'sigma' : pm.Exponential('sigma', lam=attempts_stdev_lam)
+            }
             
             # Get random sampling and likelihood for the kind of attempt
             loglike = fm.get_loglikelihood_fn(
-                          attempts = "gaussian",
-                          kind = 'min',
+                          attempts = self.attempt_distribution,
+                          kind = self.kind,
                           )
+                          
+            posterior_predictive_sampler = fm.get_random_fn(
+                                 n_periods=self.n_obs, 
+                                 kind=self.kind
+                                 )
             
-            random_sampler = fm.get_random_fn(
+            forecast_sampler = fm.get_random_fn(
                                  n_periods=fcast_len, 
                                  past_obs=self.train_data,
                                  kind=self.kind
                                  )
             
-            likelihood = pm.DensityDist('running_max', 
-                                        loglike, random=random_sampler, 
+            likelihood = pm.DensityDist('running_record', 
+                                        loglike, random=posterior_predictive_sampler, 
                                         observed = {'jump_data':self.jump_data, 
                                                     'flat_data':self.flat_data, 
-                                                    'mu': mu, 
-                                                    'sigma': sigma}
+                                                    **priors}
+                                        )
+            
+            forecasting_likelihood = pm.DensityDist('forecast', 
+                                        loglike, random=forecast_sampler, 
+                                        observed = priors
                                         )
 
     def fit(self, 
@@ -108,12 +123,19 @@ class ForecastModel:
                                    return_inferencedata=True, 
                                    idata_kwargs={"density_dist_obs": False}
                                    )
-        return self.trace
 
-    def draw_forecasts(self):
+    def forecast(self):
         """Samples the posterior predictive (includes past and future).
-        """                    
+        """
         with self.pymc_model:
             self.ppc = pm.sample_posterior_predictive(self.trace)
         
-        return self.ppc
+        return self.ppc['forecast']
+    
+    def posterior_predictive(self):
+        """ Samples the posterior predictive distributions of the observations.
+        """
+        with self.pymc_model:
+            self.ppc = pm.sample_posterior_predictive(self.trace)
+        
+        return self.ppc['running_record']
