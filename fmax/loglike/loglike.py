@@ -1,44 +1,38 @@
 import pymc3 as pm
 import numpy as np
 
-def gaussian_attempts(jump_data, flat_data, mu, sigma):
-    """Log likelihood with a Gaussian attempt distribution.
+def get_loglikelihood_fn(
+    attempts = "gaussian",
+    kind = 'min',
+    ):
+    """ Build a logp function for a cumulative 
     """
-    x_dist = pm.Normal.dist(mu=mu, sigma=sigma)
+    if attempts == 'gaussian':
+      generic_x_dist = pm.Normal.dist
     
-    # Add likelihood contribution from the jump data
-    log_likelihood = pm.math.sum(x_dist.logp(jump_data))
-
-    # Compute distance of flat data from mean
-    mu_distance = mu - flat_data
+    elif attempts == 'gumbel':
+      generic_x_dist = pm.Gumbel.dist
+      
+    elif attempts == 'weibull':
+      generic_x_dist = pm.Weibull.dist
     
-    # Now get the value reflected across the mean. 
-    # Taking the logcdf of this value gives us the desired 
-    # probability on a log scale
-    flat_data_reflected = mu + mu_distance
-
-    log_likelihood += pm.math.sum(x_dist.logcdf(flat_data_reflected))
-
-    return log_likelihood
-
-
-def gumbel_attempts_min(jump_data, flat_data, mu, sigma):
-    """Log likelihood with a Gumbel attempt distribution.
-    """
-
-    beta = pm.math.sqrt((6/(np.pi**2))*(sigma**2))
-    mu = (-mu) - beta*np.euler_gamma
-
-    x_dist = pm.Gumbel.dist(mu=mu, beta=beta)
+    else: raise NotImplementedError
     
-    # Add likelihood contribution from the jump data
-    log_likelihood = pm.math.sum(x_dist.logp(-jump_data))
+    def _logp(jump_data, flat_data, **kwargs):
+        """ Likelihood function
+        """
+        ## Instantiate underlying distribution
+        x_dist = generic_x_dist(**kwargs)
+        
+        # Add likelihood contribution from the jump data
+        log_likelihood = pm.math.sum(x_dist.logp(jump_data))
 
-    # Contribution from the flat data
-    log_likelihood += pm.math.log1mexp(x_dist.logcdf(-flat_data))
-
-    return log_likelihood
-
-
-
-
+        # Add likelihood contribution from the flat data
+        log_likelihood += pm.math.sum(
+                          pm.math.log1mexp(
+                          -x_dist.logcdf(flat_data)
+                          ))
+        
+        return log_likelihood
+    
+    return _logp
