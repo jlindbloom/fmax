@@ -13,7 +13,7 @@ def get_random_fn(
     """
     
     def _random(point=None, size=None, 
-        n_periods=n_periods, past_obs=past_obs):
+        n_periods=n_periods, past_obs=past_obs, attempts = attempts):
       """ Random sampling function
       """
       

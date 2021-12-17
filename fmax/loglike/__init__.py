@@ -1,1 +1,1 @@
-from fmax.loglike.loglike import gaussian_attempts, gumbel_attempts_min
+from fmax.loglike.loglike import get_loglikelihood_fn

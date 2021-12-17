@@ -10,6 +10,18 @@ class ForecastModel:
     def __init__(self, 
         record_data, 
         time_index=None, 
+        fcast_len = 0,
+        
+        prior_parameters = {
+          'mu' : {
+            'mean' : 11,
+            'std' : 3,
+          },
+          'sigma' : {
+            'lam' : 1
+          }
+        },
+        
         kind="max", 
         attempts="gaussian", 
         train="all"
@@ -44,26 +56,15 @@ class ForecastModel:
         # Get jump/flat data
         self.jump_data, self.flat_data =\
           fm.jump_flat_split(self.train_data, kind=self.kind)
-
-    def fit(self, 
-    
-        attempts_mean_mu=11, 
-        attempts_mean_sigma=3,
-        attempts_stdev_lam=1, 
+          
         
-        fcast_len=0,
-        
-        chains=2, 
-        draws=20000, 
-        tune=5000, 
-        ):
-        """Fits a PyMC model to the training data.
-        """
-
-        # WIP: figure out how to choose priors reasonably from data
-
+        # Define model
         with pm.Model() as self.pymc_model:
             # Initialize priors
+            attempts_mean_mu = prior_parameters['mu']['mean']
+            attempts_mean_sigma = prior_parameters['mu']['std']
+            attempts_stdev_lam = prior_parameters['sigma']['lam']
+            
             mu = pm.Normal('mu', mu=attempts_mean_mu, sigma=attempts_mean_sigma)
             sigma = pm.Exponential('sigma', lam=attempts_stdev_lam)
             
@@ -86,7 +87,19 @@ class ForecastModel:
                                                     'mu': mu, 
                                                     'sigma': sigma}
                                         )
-            
+
+    def fit(self, 
+        chains=2, 
+        draws=20000, 
+        tune=5000, 
+        ):
+        """Fits a PyMC model to the training data.
+        """
+
+        # WIP: figure out how to choose priors reasonably from data
+
+        
+        with self.pymc_model:
             self.trace = pm.sample(draws=draws, 
                                    chains=chains, 
                                    tune=tune, 
@@ -94,11 +107,13 @@ class ForecastModel:
                                    target_accept=0.99,
                                    return_inferencedata=True, 
                                    idata_kwargs={"density_dist_obs": False}
-                                   )            
-
+                                   )
+        return self.trace
 
     def draw_forecasts(self):
         """Samples the posterior predictive (includes past and future).
         """                    
         with self.pymc_model:
             self.ppc = pm.sample_posterior_predictive(self.trace)
+        
+        return self.ppc
