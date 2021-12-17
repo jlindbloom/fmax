@@ -22,9 +22,12 @@ class ForecastModel:
             self.master_with_fcast_index = [i for i in range(self.n_obs+self.fcast_len)]
             self.tot_index_len = self.n_obs + self.fcast_len
         else:
-            print("I haven't done this case yet...")
+            raise NotImplementedError
             self.master_index = time_index
-
+            self.fcast_index = [i for i in range(self.n_obs, self.fcast_len)]
+            self.master_with_fcast_index = np.concatenate(self.master_index, self.fcast_index)
+            self.tot_index_len = len(self.fcast_index) + len(self.master_with_fcast_index)
+            
         # Split into training and testing:
         if self.train == "all":
             self.train_data = self.record_data
