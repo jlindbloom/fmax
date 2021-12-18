@@ -59,19 +59,21 @@ class ForecastModel:
           fm.jump_flat_split(self.train_data, kind=self.kind)
         
         # Init PyMC3 model
-        self.init_pymc_model()
+        self.init_pymc_model(prior_parameters)
     
-    def init_pymc_model(self):
+    def init_pymc_model(self, prior_parameters):
+        """ Create a PyMC3 model
+        """
         # Define model
         with pm.Model() as self.pymc_model:
-            # Initialize priors
+            # Initialize priors for the distribution of each attempt
             attempts_mean_mu = prior_parameters['mu']['mean']
             attempts_mean_sigma = prior_parameters['mu']['std']
             attempts_stdev_lam = prior_parameters['sigma']['lam']
             
             priors = {
-              'mu' : pm.Normal('mu', mu=attempts_mean_mu, sigma=attempts_mean_sigma)
-              'sigma' : pm.Exponential('sigma', lam=attempts_stdev_lam)
+              'mu' : pm.Normal('mu', mu=attempts_mean_mu, sigma=attempts_mean_sigma),
+              'sigma' : pm.Exponential('sigma', lam=attempts_stdev_lam),
             }
             
             # Get random sampling and likelihood for the kind of attempt
@@ -85,18 +87,20 @@ class ForecastModel:
                                  kind=self.kind
                                  )
             
-            forecast_sampler = fm.get_random_fn(
-                                 n_periods=fcast_len, 
-                                 past_obs=self.train_data,
-                                 kind=self.kind
-                                 )
-            
             likelihood = pm.DensityDist('running_record', 
                                         loglike, random=posterior_predictive_sampler, 
                                         observed = {'jump_data':self.jump_data, 
                                                     'flat_data':self.flat_data, 
                                                     **priors}
                                         )
+            
+            # We create a second sampling function so we can sample
+            # the extrapolated distribution of records later
+            forecast_sampler = fm.get_random_fn(
+                                 n_periods=self.fcast_len, 
+                                 past_obs=self.train_data,
+                                 kind=self.kind
+                                 )
             
             forecasting_likelihood = pm.DensityDist('forecast', 
                                         loglike, random=forecast_sampler, 
@@ -110,9 +114,6 @@ class ForecastModel:
         ):
         """Fits a PyMC model to the training data.
         """
-
-        # WIP: figure out how to choose priors reasonably from data
-
         
         with self.pymc_model:
             self.trace = pm.sample(draws=draws, 

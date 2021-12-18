@@ -37,7 +37,7 @@ def get_random_fn(
       
       if kind == 'max':
         sample_path = np.minimum.accumulate(attempts)
-      elif kind == 'min'
+      elif kind == 'min':
         sample_path = np.minimum.accumulate(attempts)
         
       return sample_path
