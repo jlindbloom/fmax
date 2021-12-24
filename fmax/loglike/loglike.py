@@ -142,10 +142,12 @@ def get_loglikelihood_fn(
           log_likelihood += pm.math.sum(x_dist.logcdf(flat_data))
                             
         if kind == 'min':
-          log_likelihood += pm.math.sum(
-                            pm.math.log1mexp(
-                            -x_dist.logcdf(flat_data)
-                            ))
+            log_likelihood += pm.math.sum(pm.math.log(1 - pm.math.exp(x_dist.logcdf(-flat_data))))
+
+        #   log_likelihood += pm.math.sum(
+        #                     pm.math.log1mexp(
+        #                     -x_dist.logcdf(flat_data)
+        #                     ))
         else: raise ValueError("`kind` must be 'max' or 'min'")
         
         return log_likelihood

@@ -1,3 +1,4 @@
+import numpy as np
 import matplotlib.pyplot as plt
 
 
@@ -13,12 +14,12 @@ def plot_train_test(fcast_model):
 
 
 
-def plot_posterior_predictive(fcast_model):
+def plot_posterior_predictive(fcast_model, label):
     """Simple plot of the posterior predictive of a forecast model.
     """
 
-    sample_paths = fcast_model.ppc['running_max']
-    index = fcast_model.fcast_index
+    sample_paths = fcast_model.posterior_predictive_samples
+    index = fcast_model.train_index
 
     # Calculate the 1%, 10%, 50%, 90%, and 99% quantiles
     lower_bound_one = np.quantile(sample_paths, q=0.01, axis=0)
@@ -28,28 +29,49 @@ def plot_posterior_predictive(fcast_model):
     upper_bound_ninety_nine = np.quantile(sample_paths, q=0.99, axis=0)
 
     # Plot
-    fig, axs = plt.subplots(1, 2, figsize=(13,8))
+    fig, axs = plt.subplots(figsize=(13,8))
 
-    # Plot sample paths on the left
-    axs[0].plot(index, sample_paths[:10000,:].T, alpha=0.05)
-    axs[0].plot(fcast_model.train_index, fcast_model.train_data, color="red", label="Training")
-    axs[0].plot(fcast_model.test_index, fcast_model.test_data, color="black", label="Testing")
-    axs[0].legend()
-    axs[0].set_xlabel("Period")
-    axs[0].set_ylabel("Record")
-    axs[0].set_title("Many Posterior Predictive Sample Paths")
+    axs.fill_between(index, lower_bound_one, upper_bound_ninety_nine, alpha=0.4, label="99% CI", color="C0")
+    axs.fill_between(index, lower_bound_ten, upper_bound_ninety, alpha=0.7, label="80% CI", color="C0")
+    axs.plot(index, medians, label="Median")
+    axs.plot(index, fcast_model.train_data, color="red", label="Training")
+    axs.legend()
+    axs.set_xlabel("Period")
+    axs.set_ylabel("Record")
+    axs.set_title(label)
+
+    fig.tight_layout()
+
+    return fig
 
 
-    # Plot CI on the right
-    axs[1].fill_between(index, lower_bound_one, upper_bound_ninety_nine, alpha=0.4, label="99% CI", color="C0")
-    axs[1].fill_between(index, lower_bound_ten, upper_bound_ninety, alpha=0.7, label="80% CI", color="C0")
-    axs[1].plot(index, medians, label="Median")
-    axs[1].plot(fcast_model.train_index, fcast_model.train_data, color="red", label="Training")
-    axs[1].plot(fcast_model.test_index, fcast_model.test_data, color="black", label="Testing")
-    axs[1].legend()
-    axs[1].set_xlabel("Period")
-    axs[1].set_ylabel("Record")
-    axs[1].set_title("Credible Interval Over Posterior Predictive Sample Paths")
+def plot_forecast(fcast_model, test_data, label, actual):
+    """Simple plot of the forecast samples of a forecast model.
+    """
+
+    sample_paths = fcast_model.forecast_samples
+    index = fcast_model.master_with_fcast_index
+
+    # Calculate the 1%, 10%, 50%, 90%, and 99% quantiles
+    lower_bound_one = np.quantile(sample_paths, q=0.01, axis=0)
+    lower_bound_ten = np.quantile(sample_paths, q=0.1, axis=0)
+    medians = np.quantile(sample_paths, q=0.5, axis=0)
+    upper_bound_ninety = np.quantile(sample_paths, q=0.9, axis=0)
+    upper_bound_ninety_nine = np.quantile(sample_paths, q=0.99, axis=0)
+
+    # Plot
+    fig, axs = plt.subplots(figsize=(13,8))
+    
+    axs.fill_between(index, lower_bound_one, upper_bound_ninety_nine, alpha=0.4, label="99% CI", color="C0")
+    axs.fill_between(index, lower_bound_ten, upper_bound_ninety, alpha=0.7, label="80% CI", color="C0")
+    axs.plot(index, medians, label="Median")
+    axs.plot(fcast_model.train_index, fcast_model.train_data, color="red", label="Training")
+    axs.plot(fcast_model.fcast_index, test_data, color="black", label="Tryfos")
+    axs.plot(fcast_model.fcast_index, actual, color="green", label="Actual")
+    axs.legend()
+    axs.set_xlabel("Period")
+    axs.set_ylabel("Record")
+    axs.set_title(label)
 
     fig.tight_layout()
 

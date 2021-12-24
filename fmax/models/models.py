@@ -160,40 +160,16 @@ class NewForecastModel:
         # Get jump/flat data
         self.jump_data, self.flat_data = fm.jump_flat_split(self.train_data, kind=self.kind)
 
-
-        # # Handle time index
-        # if time_index is None:
-        #     self.master_index = [i for i in range(self.n_obs)]
-        #     self.tot_index_len = self.n_obs
-        # else:
-        #     raise NotImplementedError
-        #     self.master_index = time_index
-            
-        # # Split into training and testing:
-        # if self.train == "all":
-        #     self.train_data = self.record_data
-        #     self.train_index = self.master_index
-        #     self.test_data = None
-        #     self.test_index = None
-        # else:
-        #     idx_train_max = int(train*len(self.master_index))
-        #     self.train_data = self.record_data[:idx_train_max]
-        #     self.train_index = self.master_index[:idx_train_max]
-        #     self.test_data = self.record_data[idx_train_max:]
-        #     self.test_index = self.master_index[idx_train_max:]
-
-        # # Get jump/flat data
-        # self.jump_data, self.flat_data =\
-        #   fm.jump_flat_split(self.train_data, kind=self.kind)
-        
         # Init PyMC3 model
         self.init_pymc_model(self.prior_parameters)
     
     def init_pymc_model(self, prior_parameters):
         """ Create a PyMC3 model
         """
+
         # Define model
         with pm.Model() as self.pymc_model:
+
             # Initialize priors for the distribution of each attempt
             attempts_mean_mu = prior_parameters['mu']['mean']
             attempts_mean_sigma = prior_parameters['mu']['std']
@@ -205,12 +181,10 @@ class NewForecastModel:
             }
             
             # Get random sampling and likelihood for the kind of attempt
-            # loglike = fm.get_loglikelihood_fn(
-            #               attempts = self.attempt_distribution,
-            #               kind = self.kind,
-            #               )
-
-            loglike = fm.gaussian_attempts_min
+            loglike = fm.get_loglikelihood_fn(
+                          attempts = self.attempt_distribution,
+                          kind = self.kind,
+                          )
 
             # Create switch variable between posterior predictive and forecasting
             # 0 is posterior predictive, 1 is forecasting
@@ -230,27 +204,6 @@ class NewForecastModel:
                                                     **priors}
                                         )
 
-            # posterior_predictive_sampler = fm.get_random_fn(
-            #                      n_periods=self.n_obs, 
-            #                      kind=self.kind
-            #                      )
-
-
-            # We create a second sampling function so we can sample
-            # the extrapolated distribution of records later
-
-            # forecast_sampler = fm.get_random_fn(
-            #                      n_periods=self.fcast_len, 
-            #                      past_obs=self.train_data,
-            #                      kind=self.kind
-            #                      )
-            
-            # forecasting_likelihood = pm.DensityDist('forecast', 
-            #                             loglike, random=forecast_sampler, 
-            #                             observed = {'jump_data':self.jump_data,
-            #                                         'flat_data':self.flat_data,
-            #                                         **priors}
-            #                             )
 
     def fit(self, 
         chains=2, 
@@ -279,7 +232,6 @@ class NewForecastModel:
 
         self.forecast_samples = ppc['path']
 
-        #return self.ppc['path']
     
     def posterior_predictive(self):
         """ Samples the posterior predictive distributions of the observations.
@@ -289,5 +241,4 @@ class NewForecastModel:
             ppc = pm.sample_posterior_predictive(self.trace)
 
         self.posterior_predictive_samples = ppc['path']
-        #return self.ppc['path']
         
