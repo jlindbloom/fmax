@@ -1,1 +1,1 @@
-from fmax.models.models import ForecastModel
+from fmax.models.models import ForecastModel, NewForecastModel
