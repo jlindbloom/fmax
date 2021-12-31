@@ -89,7 +89,9 @@ def get_random_fn(
               attempts *= -1
 
       elif attempts == 'weibull':
-          raise NotImplementedError
+
+          alpha, beta = point['alpha'], point['beta']
+          attempts = beta*np.random.weibull(a=alpha, size=n_periods)
       
       else: 
           raise NotImplementedError

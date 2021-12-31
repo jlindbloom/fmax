@@ -55,7 +55,7 @@ def gumbel_attempts_min(jump_data, flat_data, mu, sigma):
 
     # Contribution from the flat data
     #log_likelihood += pm.math.sum(pm.math.log1mexp(x_dist.logcdf(-flat_data))) # why does this have trouble?
-    log_likelihood += pm.math.sum(pm.math.log(1 - pm.math.exp(x_dist.logcdf(-flat_data))))
+    log_likelihood += pm.math.sum(pm.math.log(1 - pm.math.exp(x_dist.logcdf(flat_data))))
 
     return log_likelihood
 
@@ -88,10 +88,11 @@ def weibull_attemps_min(jump_data, flat_data, alpha, beta):
     log_likelihood = pm.math.sum(x_dist.logp(jump_data))
 
     # Add likelihood contribution from the flat data
-    log_likelihood += pm.math.sum(
-                            pm.math.log1mexp(
-                            -x_dist.logcdf(flat_data)
-                            ))
+    # log_likelihood += pm.math.sum(
+    #                         pm.math.log1mexp(
+    #                         -x_dist.logcdf(flat_data)
+    #                         ))
+    log_likelihood += pm.math.sum(pm.math.log(1 - pm.math.exp(x_dist.logcdf(-flat_data))))
 
     return log_likelihood
 
@@ -142,6 +143,7 @@ def get_loglikelihood_fn(
           log_likelihood += pm.math.sum(x_dist.logcdf(flat_data))
                             
         if kind == 'min':
+            # I'm not sure why I have to do this but I think it's unstable
             log_likelihood += pm.math.sum(pm.math.log(1 - pm.math.exp(x_dist.logcdf(-flat_data))))
 
         #   log_likelihood += pm.math.sum(
