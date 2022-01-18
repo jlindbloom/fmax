@@ -191,6 +191,7 @@ class NewForecastModel:
                           attempts = self.attempt_distribution,
                           kind = self.kind,
                           )
+            #loglike = fm.gumbel_attempts_min
                           
             # Create switch variable between posterior predictive and forecasting
             # 0 is posterior predictive, 1 is forecasting
