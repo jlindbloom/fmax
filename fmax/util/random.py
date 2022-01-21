@@ -86,7 +86,7 @@ def get_random_fn(
           
           # This accounts for flipping the gumbel draws if using a min model 
           if kind == 'min':
-              #attempts *= -1
+              attempts *= -1
               pass
 
       elif attempts == 'weibull':
