@@ -1,51 +1,7 @@
 import numpy as np
 import pymc3 as pm
 
-def gaussian_random(n_periods=100, past_obs=None):
-    """Builds a random sampling function for use with a Gaussian attempt model.
-    """
-
-    def _random(point=None, size=None, n_periods=n_periods, past_obs=past_obs):
-        mu, sigma = point['mu'], point['sigma']
-        attempts = mu + sigma*np.random.randn(n_periods)
-
-        if past_obs is not None:
-            last_obs = np.atleast_1d(past_obs[-1])
-            attempts = np.concatenate([last_obs, attempts])
-            sample_path = np.minimum.accumulate(attempts)[1:]
-            full_sample_path = np.concatenate([past_obs, sample_path])
-            return full_sample_path
-        else:
-            sample_path = np.minimum.accumulate(attempts)
-            return sample_path
-
-    return _random
-
-
-def gumbel_random_min(n_periods=100, past_obs=None):
-    """Builds a random sampling function for use with a Gumbel attempt model.
-    """
-
-    def _random(point=None, size=None, n_periods=n_periods, past_obs=past_obs):
-        mu, sigma = point['mu'], point['sigma']
-        # beta = pm.math.sqrt((6/(np.pi**2))*(sigma**2))
-        # mu = (-mu) - beta*np.euler_gamma
-        beta = (1/np.pi)*np.sqrt(6)*sigma
-        mu = mu - beta*np.euler_gamma
-        attempts = -np.random.gumbel(mu, beta, n_periods)
-
-        if past_obs is not None:
-            last_obs = np.atleast_1d(past_obs[-1])
-            attempts = np.concatenate([last_obs, attempts])
-            sample_path = np.minimum.accumulate(attempts)[1:]
-            full_sample_path = np.concatenate([past_obs, sample_path])
-            return full_sample_path
-        else:
-            sample_path = np.minimum.accumulate(attempts)
-            return sample_path
-
-    return _random
-
+from scipy.stats import weibull_min, weibull_max, gumbel_l, gumbel_r
 
 
 def get_random_fn(
@@ -67,9 +23,6 @@ def get_random_fn(
       model = pm.modelcontext(None)
       which_random = model['random_switch'].get_value()
 
-      #print(which_random)
-      #print(point)
-
       # If posterior predictive, ignore original n_periods
       if which_random == 0:
           n_periods = len(past_obs)
@@ -79,15 +32,23 @@ def get_random_fn(
           attempts = mu + sigma*np.random.randn(n_periods)
       
       elif attempts == 'gumbel':
-          mu, sigma = point['mu'], point['sigma']
-          beta = (1/np.pi)*np.sqrt(6)*sigma
-          mu = mu - beta*np.euler_gamma
-          attempts = np.random.gumbel(mu, beta, n_periods)
-          
-          # This accounts for flipping the gumbel draws if using a min model 
-          if kind == 'min':
-              attempts *= -1
-              pass
+        if kind == "min":
+            mu, sigma = point['mu'], point['sigma']
+            beta = (1/np.pi)*np.sqrt(6)*sigma
+            #mu = mu + beta*np.euler_gamma
+            #scipy_dist = gumbel_l(mu, beta)
+            mu = mu - beta*np.euler_gamma
+            scipy_dist = gumbel_r(mu, beta)
+            attempts = scipy_dist.rvs(size=n_periods)
+
+        else:
+            mu, sigma = point['mu'], point['sigma']
+            beta = (1/np.pi)*np.sqrt(6)*sigma
+            # mu = mu - beta*np.euler_gamma
+            # scipy_dist = gumbel_r(mu, beta)
+            mu = mu + beta*np.euler_gamma
+            scipy_dist = gumbel_l(mu, beta)
+            attempts = scipy_dist.rvs(size=n_periods)
 
       elif attempts == 'weibull':
 

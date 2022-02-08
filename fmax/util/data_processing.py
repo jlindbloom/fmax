@@ -1,19 +1,17 @@
 import numpy as np
 
+
 def get_max(series):
     """Given a sequence of attempts, outputs the corresponding cumulative max.
     """
     return np.maximum.accumulate(series)
+
 
 def get_min(series):
     """Given a sequence of attempts, outputs the corresponding cumulative min.
     """
     return np.minimum.accumulate(series)
 
-
-# def test_train_max():
-#     """Splits input series into testing and training portions.
-#     """
 
 def jump_flat_split(series, kind="max"):
     """Splits an series of a running max/min into the jump and flat components.
