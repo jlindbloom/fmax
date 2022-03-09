@@ -51,9 +51,17 @@ def get_random_fn(
             attempts = scipy_dist.rvs(size=n_periods)
 
       elif attempts == 'weibull':
-
           alpha, beta = point['alpha'], point['beta']
-          attempts = beta*np.random.weibull(a=alpha, size=n_periods)
+          if kind == "min":
+            attempts = beta*np.random.weibull(a=alpha, size=n_periods)
+            ##scipy_dist = weibull_max(alpha, beta)
+            #scipy_dist = weibull_min(alpha, beta)
+            #attempts = scipy_dist.rvs(size=n_periods)
+          else:
+            #attempts = beta*np.random.weibull(a=alpha, size=n_periods)
+            #scipy_dist = weibull_min(alpha, beta)
+            scipy_dist = weibull_max(alpha, beta)
+            attempts = scipy_dist.rvs(size=n_periods)
       
       else: 
           raise NotImplementedError

@@ -89,8 +89,10 @@ def get_loglikelihood_fn(
 
         if kind == "min":
             generic_x_dist = pm.Weibull.dist
+            #generic_x_dist = MaxWeibull.dist
         elif kind == "max":
             generic_x_dist = MaxWeibull.dist
+            #generic_x_dist = pm.Weibull.dist
         else: raise ValueError("`kind` must be 'max' or 'min'")
         
         def _logp(jump_data, flat_data, alpha, beta):

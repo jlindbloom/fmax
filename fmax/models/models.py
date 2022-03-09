@@ -23,7 +23,8 @@ class ForecastModel:
         kind="max", 
         attempt_distribution="gaussian", 
         train="all",
-        fcast_test_data=None
+        fcast_test_data=None,
+        drop_first=False
         ):
         self.record_data = record_data
         self.kind = kind
@@ -33,6 +34,7 @@ class ForecastModel:
         self.fcast_len = fcast_len
         self.train = train
         self.fcast_test_data = fcast_test_data
+        self.drop_first = drop_first
 
         # Make sure fcast_len and test_data agree
         if self.fcast_test_data is not None:
@@ -182,7 +184,8 @@ class WeibullForecastModel:
         kind="max", 
         attempt_distribution="gaussian", 
         train="all",
-        fcast_test_data=None
+        fcast_test_data=None,
+        drop_first=False
         ):
         self.record_data = record_data
         self.kind = kind
@@ -192,6 +195,7 @@ class WeibullForecastModel:
         self.fcast_len = fcast_len
         self.train = train
         self.fcast_test_data = fcast_test_data
+        self.drop_first = drop_first
 
         # Make sure fcast_len and test_data agree
         if self.fcast_test_data is not None:
@@ -225,6 +229,9 @@ class WeibullForecastModel:
         # Get jump/flat data
         self.jump_data, self.flat_data = fm.jump_flat_split(self.train_data, kind=self.kind)
 
+        if self.drop_first:
+            self.jump_data = self.jump_data[1:]
+
         # Init PyMC3 model
         self.init_pymc_model(self.prior_parameters)
     
@@ -251,7 +258,7 @@ class WeibullForecastModel:
             # Get random sampling and likelihood for the kind of attempt
             loglike = fm.get_loglikelihood_fn(
                           attempts = self.attempt_distribution,
-                          kind = self.kind,
+                          kind = self.kind
                           )
             #loglike = fm.gumbel_attempts_min
                           

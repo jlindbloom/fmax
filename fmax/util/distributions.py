@@ -23,7 +23,7 @@ class MaxWeibull(pm.Continuous):
   def logp(self, x):
     y = (x) / self.beta
     return pm.math.log(self.alpha) + (self.alpha - 1)*pm.math.log(-y) \
-           - (-y)**self.alpha - pm.math.log(beta)
+           - (-y)**self.alpha - pm.math.log(self.beta)
 
   def logcdf(self, x):
     y = (x) / self.beta
